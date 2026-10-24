@@ -6,6 +6,8 @@ Claude 官方订阅与第三方模式各有一份 Desktop 会话列表。Claude 
 
 一次供应商选择，自动完成退出、备份、同步与重新打开。后台服务随 macOS 登录启动，直接响应切换事件，让聊天历史跟着使用过程持续积累。
 
+![Claude Switch Sync：切换模型，接着聊](docs/claude-switch-sync-promo-20261024.png)
+
 ## 一次切换，双向衔接
 
 例如，官方订阅额度用完后，可以这样继续工作：
