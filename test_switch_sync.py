@@ -76,6 +76,63 @@ class HandoffTests(unittest.TestCase):
         self.merge('subscription')
         self.assertEqual(json.loads((self.paths['third_party'] / 'local_a.json').read_bytes())['title'], 'official rename')
 
+    def test_round_trip_shares_progress_and_retains_each_profiles_model_and_effort(self):
+        self.put('subscription', 'a', 10, model='claude-sonnet-test', effort='medium', title='official progress')
+        self.put('third_party', 'a', 5, model='gateway-flash', effort='max', title='older progress')
+        self.merge('subscription')
+        third = json.loads((self.paths['third_party'] / 'local_a.json').read_bytes())
+        self.assertEqual((third['model'], third['effort']), ('gateway-flash', 'max'))
+        self.assertEqual((third['lastActivityAt'], third['title']), (10, 'official progress'))
+        self.put('third_party', 'a', 20, model='gateway-pro', effort='high', title='continued on third party')
+        self.merge('third_party')
+        official = json.loads((self.paths['subscription'] / 'local_a.json').read_bytes())
+        self.assertEqual((official['model'], official['effort']), ('claude-sonnet-test', 'medium'))
+        self.assertEqual((official['lastActivityAt'], official['title']), (20, 'continued on third party'))
+        third = json.loads((self.paths['third_party'] / 'local_a.json').read_bytes())
+        self.assertEqual((third['model'], third['effort']), ('gateway-pro', 'high'))
+        self.assertEqual(self.merge('subscription')['writes'], 0)
+
+    def test_missing_selection_fields_keep_the_destination_default(self):
+        self.put('subscription', 'a', 1)
+        self.put('third_party', 'a', 2, model='gateway-model', effort='max')
+        self.merge()
+        official = json.loads((self.paths['subscription'] / 'local_a.json').read_bytes())
+        self.assertNotIn('model', official)
+        self.assertNotIn('effort', official)
+        self.assertEqual(official['lastActivityAt'], 2)
+
+    def test_first_import_uses_target_defaults_in_both_directions(self):
+        for source in m.VALID_KINDS:
+            sid = 'new-' + source
+            original = self.put(source, sid, 1, model=source+'-model', effort='high')
+            before = original.read_bytes()
+            target = next(k for k in m.VALID_KINDS if k != source)
+            self.merge(source)
+            imported = json.loads((self.paths[target] / original.name).read_bytes())
+            self.assertNotIn('model', imported)
+            self.assertNotIn('effort', imported)
+            self.assertEqual(original.read_bytes(), before)
+
+    def test_null_and_partially_default_selections_preserve_field_presence(self):
+        self.put('subscription', 'a', 1, model=None)
+        self.put('third_party', 'a', 2, model='gateway-model', effort='max')
+        self.merge()
+        official = json.loads((self.paths['subscription'] / 'local_a.json').read_bytes())
+        self.assertIn('model', official)
+        self.assertIsNone(official['model'])
+        self.assertNotIn('effort', official)
+
+    def test_profile_choices_do_not_rewrite_transcript_model_history(self):
+        self.put('subscription', 'a', 1, model='official-model', effort='medium')
+        history = [{'model': 'gateway-model', 'turn': 3}]
+        self.put('third_party', 'a', 2, model='gateway-model', effort='max',
+                 transcriptModelStates=history, priorCliSessionIds=['old-cli-id'])
+        self.merge()
+        official = json.loads((self.paths['subscription'] / 'local_a.json').read_bytes())
+        self.assertEqual(official['model'], 'official-model')
+        self.assertEqual(official['transcriptModelStates'], history)
+        self.assertEqual(official['priorCliSessionIds'], ['old-cli-id'])
+
     def test_running_app_prevents_all_metadata_writes(self):
         a = self.put('subscription', 'a', 1)
         b = self.put('third_party', 'a', 2)

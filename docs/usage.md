@@ -14,11 +14,16 @@ CLI 和 Desktop 的供应商分别选择。CLI 会话正文沿用 `~/.claude/pro
 | --- | --- |
 | 官方 App 会话索引 | `~/Library/Application Support/Claude/claude-code-sessions/…` |
 | 第三方 App 会话索引 | `~/Library/Application Support/Claude-3p/claude-code-sessions/…` |
+| 会话的模型与推理强度 | 保存在各侧会话索引中，切换后沿用该侧的选择 |
 | 聊天正文 | 沿用 `~/.claude/projects` 中的原始文件 |
 | 账号、密钥与供应商设置 | 由 Claude 和 CC Switch 继续管理 |
 | 同步状态、日志与备份 | `~/.local/share/claude-switch-sync` |
 
 同一会话取最后活动时间较新的索引；时间一致时采用刚退出的一侧。App 更换 `cliSessionId` 后，较新记录的 `priorCliSessionIds` 须明确包含旧 ID，且会话 ID、创建时间和项目目录一致，服务才按同一会话更新。
+
+合并聊天进度时，各侧保留自己已有的 `model` 与 `effort` 字段。例如，官方订阅选择 Sonnet 的 Medium，第三方选择 DeepSeek 的 High，往返切换后两侧继续沿用各自的组合。会话首次出现在另一侧时，由目标客户端的默认设置决定模型与推理强度；之后的选择保存在该侧索引。原字段未设置或显式为 `null` 时，保留原状态。
+
+历史记录中的模型使用信息随聊天进度同步，当前模型与推理选择单独保留。第三方供应商共用 `Claude-3p` 索引，因此这里的选择按官方、第三方两侧保存。
 
 关联待确认的记录各自保留，其余会话继续同步。归档状态随选中的会话索引更新，删除标记用于维持已有的删除结果。重复会话保留给用户按需整理。
 

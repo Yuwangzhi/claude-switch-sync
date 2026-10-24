@@ -26,6 +26,7 @@ BASE = pathlib.Path(__file__).resolve().parent
 HOME = pathlib.Path.home()
 APP_EXE = '/Applications/Claude.app/Contents/MacOS/Claude'
 VALID_KINDS = {'subscription', 'third_party'}
+PROFILE_SELECTION_FIELDS = ('model', 'effort')
 
 
 class Deferred(Exception):
@@ -269,6 +270,23 @@ def plan_merge(left, right, outgoing):
     return desired, conflicts, skipped_deleted, identity_conflicts
 
 
+def with_profile_selection(data, existing):
+    """Combine shared progress with this profile's own model/effort choice.
+
+    Field absence is meaningful: it delegates the choice to Desktop's defaults.
+    A first import therefore uses the destination's defaults instead of a model
+    alias or effort level that belongs to the other provider.
+    """
+    record = json.loads(data)
+    adjusted = dict(record)
+    for key in PROFILE_SELECTION_FIELDS:
+        if existing is not None and key in existing:
+            adjusted[key] = existing[key]
+        else:
+            adjusted.pop(key, None)
+    return data if adjusted == record else encoded(adjusted)
+
+
 def merge_indexes(config, outgoing, guard=require_stopped, backup_root=None):
     guard()
     directories = {key: pathlib.Path(config['indexes'][key]) for key in VALID_KINDS}
@@ -280,8 +298,19 @@ def merge_indexes(config, outgoing, guard=require_stopped, backup_root=None):
         raise Deferred('Session metadata is still being written')
     desired, conflicts, deleted, identity_conflicts = plan_merge(second['subscription'], second['third_party'], outgoing)
     per_kind = {}
+    selection_overlays = 0
     for kind in directories:
         per_kind[kind] = dict(desired)
+        for name, data in desired.items():
+            if not name.startswith('local_'):
+                continue
+            existing = second[kind][0].get(name[:-len('.json')])
+            adjusted = with_profile_selection(data, existing)
+            selection_overlays += adjusted != data
+            if existing is not None and json.loads(adjusted) == existing:
+                # Preserve the destination's exact formatting on a no-op pass.
+                adjusted = second[kind][1][name]
+            per_kind[kind][name] = adjusted
         archive_ids = set(json.loads(desired['archived-sessions.idx'])['archived'])
         for sid in identity_conflicts:
             # An unresolved pair retains each side's own archive visibility.
@@ -319,6 +348,7 @@ def merge_indexes(config, outgoing, guard=require_stopped, backup_root=None):
     report = {'event_id': event_id, 'session_count': len(desired) - 1, 'writes': writes,
               'conflict_count': len(conflicts), 'skipped_deleted_count': len(deleted),
               'unresolved_identity_count': len(identity_conflicts),
+              'profile_selection_overlays': selection_overlays,
               'transcripts_modified': 0, 'files_deleted': 0}
     atomic_write(backup / 'report.json', encoded(report))
     if identity_conflicts:
