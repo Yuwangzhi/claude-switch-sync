@@ -61,14 +61,15 @@ python3 scripts/install.py
 
 ## 验证
 
-在 Claude Desktop **3.6556.2**、Claude Code **2.1.309**、CC Switch **4.0.15** 的 macOS 环境中，已完成 **164 条会话索引**的同步与 App 重新打开验证。**26 项回归测试**覆盖双向合并、各侧模型与推理选择、会话 ID 变化、归档状态、并发写入及异常恢复。
+在 Claude Desktop **3.6556.2**、Claude Code **2.1.310**、CC Switch **4.0.15** 的 macOS 环境中，已完成 **164 条原有会话索引**的同步与 App 重新打开验证。**106 项回归测试**覆盖双向合并、各侧模型与推理选择、会话 ID 变化、归档状态、并发写入及异常恢复。其中 **72 项场景测试**遍历供应商、直连／路由／聚合与 App 开关状态的组合。
 
 ```sh
-python3 -m unittest -v test_switch_sync.py
+python3 -m unittest discover -v
 ```
 
 ## 使用与维护
 
 - [使用指南](docs/usage.md)：同步规则、运行状态、备份恢复、暂停与卸载。
 - [验证记录](docs/validation-2026-10-24.md)：测试范围与实机结果。
+- [完整往返测试](docs/loop-validation-2026-10-24.md)：App 与 CLI 的实际续聊、模型选择和连接模式验证。
 - [Claude 官方会话说明](https://code.claude.com/docs/en/sessions)：CLI 会话保存与恢复方式。

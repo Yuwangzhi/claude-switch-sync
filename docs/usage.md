@@ -54,6 +54,8 @@ tail -20 ~/.local/share/claude-switch-sync/events.jsonl
 
 运行异常记录在 `errors.log`。服务由 LaunchAgent 在登录时启动，以文件与进程事件驱动。
 
+原生启动助手按 `/Applications/Claude.app/Contents/MacOS/Claude` 的实际可执行文件识别 App，与同步服务的进程检测采用相同依据。系统临时登记了错误的应用标识时，仍可找到正确的 Claude 进程并请求正常退出。
+
 ## 备份与恢复
 
 安装目录的 `backups/<时间-编号>/` 保存两侧原始索引和 `report.json`。关联待确认时，另有 `unresolved-session-ids.json` 列出对应会话。

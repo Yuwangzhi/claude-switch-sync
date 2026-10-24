@@ -1,9 +1,14 @@
 import AppKit
 import Foundation
 
-let bundle = "com.anthropic.claudefordesktop"
+let appURL = URL(fileURLWithPath: "/Applications/Claude.app")
+let executablePath = appURL.appendingPathComponent("Contents/MacOS/Claude").standardizedFileURL.path
 let command = CommandLine.arguments.dropFirst().first ?? "status"
-let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundle)
+// LaunchServices can retain a stale runtime bundle identifier. Match the same
+// executable path as the synchronizer so an open Claude is still found.
+let running = NSWorkspace.shared.runningApplications.filter {
+    $0.executableURL?.standardizedFileURL.path == executablePath
+}
 switch command {
 case "quit":
     // A normal quit request: never SIGKILL/forceTerminate. If the app declines,
@@ -16,7 +21,7 @@ case "open":
     config.activates = false
     var finished = false
     var succeeded = false
-    NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/Claude.app"), configuration: config) { app, error in
+    NSWorkspace.shared.openApplication(at: appURL, configuration: config) { app, error in
         succeeded = app != nil && error == nil
         finished = true
     }

@@ -35,7 +35,7 @@ def stop():
 def make_backup():
     backup = DEST / 'deployment-backup' / datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     backup.mkdir(parents=True, mode=0o700)
-    for name in ['switch_sync.py', 'test_switch_sync.py', 'AppLifecycle.swift',
+    for name in ['switch_sync.py', 'test_switch_sync.py', 'test_scenarios.py', 'AppLifecycle.swift',
                  'app-lifecycle', 'README.md', 'config.json', 'state.json']:
         source = DEST / name
         if source.is_file():
@@ -93,7 +93,7 @@ def install(check_only=False):
         backup = make_backup()
         stop()
         try:
-            for name in ['switch_sync.py', 'test_switch_sync.py', 'AppLifecycle.swift', 'README.md']:
+            for name in ['switch_sync.py', 'test_switch_sync.py', 'test_scenarios.py', 'AppLifecycle.swift', 'README.md']:
                 module.atomic_write(DEST / name, (ROOT / name).read_bytes())
             module.atomic_write(DEST / 'app-lifecycle', helper.read_bytes())
             (DEST / 'app-lifecycle').chmod(0o700)
@@ -119,7 +119,7 @@ def install(check_only=False):
             # Restore only deployment artifacts; never rewind session indexes,
             # provider credentials or state a running service may have updated.
             stop()
-            for name in ['switch_sync.py', 'test_switch_sync.py', 'AppLifecycle.swift',
+            for name in ['switch_sync.py', 'test_switch_sync.py', 'test_scenarios.py', 'AppLifecycle.swift',
                          'app-lifecycle', 'README.md']:
                 if (backup / name).is_file():
                     shutil.copy2(backup / name, DEST / name)
